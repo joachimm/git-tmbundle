@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 CW = ENV['TM_SCM_COMMIT_WINDOW']
-
+require ENV['TM_SUPPORT_PATH'] + '/lib/ui.rb'
 module PartialCommitWorker
   class NotOnBranchException < Exception; end
   class NothingToCommitException < Exception; end
@@ -38,18 +38,15 @@ module PartialCommitWorker
         
     def exec_commit_dialog
       files, statuses = split_file_statuses
-      
-      res = %x{cd "#{git.path}" && #{e_sh CW}                 \
-        --diff-cmd   '#{git.git},diff'        \
-        --action-cmd "M,D:Revert,#{status_helper_tool},revert" \
-        --action-cmd "?:Delete,#{status_helper_tool},delete" \
-        --status #{statuses.join(':')}       \
-        #{files.map{ |f| e_sh(f) }.join(' ')} 2>/dev/console
-      }
-      canceled = ($? != 0)
-      res   = Shellwords.shellwords(res)
-      msg = res[1]
-      files = res[2..-1]
+      msg, files = TextMate::UI.commit( "#{git.git},diff", ["M,D:Revert,#{status_helper_tool},revert","?:Delete,#{status_helper_tool},delete"], statuses, files)
+     #res = %x{cd "#{git.path}" && #{e_sh CW}                 \
+     #  --diff-cmd   '#{git.git},diff'        \
+     #  --action-cmd "M,D:Revert,#{status_helper_tool},revert" \
+     #  --action-cmd "?:Delete,#{status_helper_tool},delete" \
+     #  --status #{statuses.join(':')}       \
+     #  #{files.map{ |f| e_sh(f) }.join(' ')} 2>/dev/console
+     #}
+      canceled = files.nil?
       return canceled, msg, files
     end
     
